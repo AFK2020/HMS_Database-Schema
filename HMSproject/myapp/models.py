@@ -21,7 +21,7 @@ class Department(models.Model):
 class Doctor(models.Model):
     name = models.CharField(max_length=255)
     specialization = models.CharField(max_length=255)
-    type = models.IntegerField(
+    type = models.CharField( max_length= 100,
         choices=DoctorType.choices(), default=DoctorType.PRIMARY_CARE
     )
     email = models.EmailField(max_length=255, verbose_name="Email Address")
@@ -30,6 +30,7 @@ class Doctor(models.Model):
         Department,
         verbose_name="Department Id",
         on_delete=models.CASCADE,
+        related_name= "dr_to_dept",
         null=True,
         blank=True,
     )
@@ -40,7 +41,10 @@ class Doctor(models.Model):
 
 class Insuarance(models.Model):
     patient = models.ForeignKey(
-        "myapp.Patient", verbose_name=("Patient Name"), on_delete=models.CASCADE , related_name="insuarance_pt"
+        "myapp.Patient",
+        verbose_name=("Patient Name"),
+        on_delete=models.CASCADE,
+        related_name="insuarance_pt",
     )
     provider = models.CharField(max_length=255)
     policy_number = models.CharField(max_length=255)
@@ -57,9 +61,11 @@ class Surgery(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name= "surgery_patient"
     )
     doctor = models.ForeignKey(
-        Doctor, verbose_name="Doctor", on_delete=models.SET_NULL, null=True, blank=True
+        Doctor, verbose_name="Doctor", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="surgery_doctor"
     )
     surgery_date = models.DateTimeField()
     surgery_type = models.CharField(max_length=255)
@@ -86,6 +92,8 @@ class Prescription(models.Model):
         related_name="pres_dr_id",
         on_delete=models.CASCADE,
     )
+    medicine_details = models.TextField(blank=True, null=True)
+    instructions = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.appointment.id} {self.doctor.id}"
@@ -105,29 +113,28 @@ class Appointment(models.Model):
         on_delete=models.CASCADE,
     )
     appointment_date = models.DateField()
-    status = models.IntegerField(
+    status = models.CharField( max_length=100,
         choices=AppointmentStatus.choices(), default=AppointmentStatus.SCHEDULED
     )
-    type = models.IntegerField(
+    type = models.CharField( max_length=100,
         choices=AppointmentType.choices(), default=AppointmentType.LOW
     )
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.patient_name} : {self.appointment_date}"
+        return f"{self.patient_name} : {self.type} : {self.status}"
 
 
 class Patient(models.Model):
     name = models.CharField(max_length=255)
     dob = models.DateField(verbose_name="Date of Birth")
-    gender = models.IntegerField(choices=GenderType.choices(), default=GenderType.MALE)
+    gender = models.CharField(max_length=100, choices=GenderType.choices(), default=GenderType.MALE)
     address = models.TextField(null=True, blank=True)
     ph_number = CustomPhoneNumberField(verbose_name="Phone Number")
     email = models.EmailField(max_length=255, null=True, blank=True)
     appointments = models.ForeignKey(
-        Appointment, on_delete=models.CASCADE, null=True, blank=True
+        Appointment, on_delete=models.CASCADE, null=True, blank=True, related_name="appoint_patient"
     )
-    doctor = models.ManyToManyField(Doctor, blank=True)
-
+    doctor = models.ManyToManyField(Doctor, blank=True, related_name="doctor_patients")
     def __str__(self):
         return self.name

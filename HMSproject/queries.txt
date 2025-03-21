@@ -7,25 +7,161 @@ obj = Appointment.objects.filter(appointment_date__range = ["2025-3-20","2025-3-
 
 2. Get all **patients** who **do not have insurance** and have had **at least one appointment in the past month**.
 
+today = timezone.now().date()
+one_month_ago = today - timedelta(days=30)
+patients = Patient.objects.filter(
+app_p_id__appointment_date__gte=one_month_ago,
+app_p_id__appointment_date__lte= today,
+insuarance_pt__isnull=True # No insurance (insurance related to patient is null)
+)
+patient_data = [{"id": patient.id, "name": patient.name} for patient in patients]
 
-3. Find all **doctors** who have handled **more than 10 appointments** in the last **6 months**.
+3. Find all **doctors** who have handled **more than  3 appointments** in the last **6 months**.
+ 
+today = timezone.now().date()
+six_month_ago = today - timedelta(days=30*6)
+doctors = Doctor.objects.annotate(count=Count('app_dr_id__id')).filter(
+app_dr_id__appointment_date__gte = six_month_ago,
+app_dr_id__appointment_date__lte = today,
+count__gte = 3
+)
+
 4. Update the **appointment status** to `"Missed"` where the **appointment date** is in the past and the **status is still "Scheduled"**.
+
+today = timezone.now().date()
+Appointment.objects.filter(
+appointment_date__lt = today,
+status = AppointmentStatus.SCHEDULED
+).update(status = AppointmentStatus.MISSED)
+
 5. Calculate the **total cost of all surgeries** for **each patient**, but only for patients who have undergone **more than one surgery**.
+There was never a cost field
+
 6. Retrieve a list of **distinct insurance providers** that have **at least one active patient**, ordered **alphabetically**.
+
+
+    insuarance_providers = Insuarance.objects.filter(
+        patient_id__isnull = False
+    ).order_by("provider")
+
+    provider_data = [
+        {
+            "name": provider.provider, 
+            # "date": [d.appointment_date for d in doctor.app_dr_id.all()],
+        } for provider in insuarance_providers
+     ]
+
+
 7. Find **departments** that have **at least 3 doctors** but **no head doctor assigned**.
+
+
+    departments = Department.objects.annotate(count = Count("dr_to_dept")).filter(
+        count__gte = 3 
+    )
+    dept_data = [
+        {
+            "name" : dept.name,
+            "doctor" : [d.name for d in dept.dr_to_dept.all()]
+    } for dept in departments
+    ]
+
 8. Calculate the **total amount billed** for all **patients** who had a **surgery in the last month** and do **not have insurance**.
 9. Retrieve all **patients with their prescriptions**, but only if they had an **appointment in the last 30 days**, and order by the **most recent appointment**.
 10. Increase the **fees** of all **doctors** by **15%** if they have **handled more than 20 appointments in the last year**.
 11. Find the **average age of patients** who have had **at least one surgery** but have **never had an appointment**.
+    patients = Patient.objects.annotate(
+        surgery_count = Count("surgery_patient"),
+        appointment_count = Count("appointments")
+    ).filter(
+        surgery_count__gte =1,
+        appointment_count = 0
+    )
+
+    patient_data = [
+        {
+            "name" : p.name,
+    } for p in patients
+    ]
+
+
 12. **Bulk create** new **appointments** for all **patients** who have visited **a specific doctor**, ensuring they are not **already scheduled**.
+
+
+
 13. Retrieve the **number of prescriptions written** by each doctor, but only include doctors who have **written at least 5 prescriptions**.
+    result = (Doctor.objects.values('name').annotate(no_of_prescriptions = Count("pres_dr_id")).order_by().filter(
+        no_of_prescriptions__gte =5
+    ))
+    doctor_data = [
+        {  
+            "Doctor name" : r['name'] ,
+            "Numeber of Precription" : r['no_of_prescriptions']
+    } for r in result
+    ]
+
+
 14. Retrieve **appointments** where the **patient’s insurance provider is "XYZ Insurance"**, but exclude appointments scheduled for **Sunday**.
+
+    patients= Patient.objects.filter(
+        insuarance_pt__provider = 'MassMutual'
+    ).values_list('name', flat=True)
+
+    appointments = Appointment.objects.filter(
+        patient_name__name__in=patients,
+        status = AppointmentStatus.SCHEDULED.value
+        ).annotate(
+            weekday= ExtractWeekDay("appointment_date")
+            ).exclude(weekday__in = [7])
+    appointment_data = [
+        {
+        "Patient_name" : a.patient_name.name,
+        "Status" : a.status,
+        "Priority" : a.type,
+        } for a in appointments
+    ]
+
+
 15. Update the **priority** of appointments:
-- If **scheduled within 3 days**, set as `"High"`
-- If **between 4-10 days**, set as `"Medium"`
-- Otherwise, set as `"Low"`.
+- If **scheduled within 3 months**, set as `"High"`
+- If **between 3-5 months**, set as `"Medium"`
+- less than 6 months, set as `"Low"`.
+
+    today = timezone.now().date()
+    six_months = today - timedelta(days=30*6)
+    three_months = today -timedelta(days=30*3)
+    
+    Appointment.objects.filter(
+        appointment_date__lt=six_months,
+    ).update(type=AppointmentType.LOW.value)
+
+    Appointment.objects.filter(
+        appointment_date__lte=three_months,
+        appointment_date__gte=six_months,
+    ).update(type=AppointmentType.MEDIUM.value)
+
+    Appointment.objects.filter(
+        appointment_date__gt=three_months,
+    ).update(type=AppointmentType.HIGH.value)
+
+
 1. Retrieve a list of **doctor IDs** who have handled **at least 5 surgeries** in the **past year**.
+
+
+    doctors = Doctor.objects.annotate(surgery_count = Count("surgery_doctor")).filter(
+        surgery_count__gte = 3
+    )
+    doctor_data=[
+        {   "Doctor name" : id.name,
+            "Doctor id": id.id}
+        for id in doctors
+        ]
+    
+
 2. Get a **union** of all **patients who have at least one appointment** and **patients who have at least one surgery**.
+
+
+
+
 3. Retrieve all **patients who have both an appointment and a prescription**.
 4. Find all **patients who have appointments but no prescriptions**.
 5. Retrieve **all patients with their doctors**, but **only include patients who have visited more than one doctor** and **exclude those who have insurance**.
