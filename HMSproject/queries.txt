@@ -159,27 +159,182 @@ There was never a cost field
 
 2. Get a **union** of all **patients who have at least one appointment** and **patients who have at least one surgery**.
 
+    query1 = Patient.objects.filter(
+        app_p_id__isnull = False
+    )
+    query2 = Patient.objects.filter(
+        surgery_patient__isnull = False
+    )
+    records = (query1 | query2).distinct()
+    patient_data=[
+        {   "Patient name" : id.name,
+            "Patient id": id.id}
+        for id in records
+        ]
+    
 
 
+3. Retrieve all **doctors who have both an appointment and wrote a prescription**.
 
-3. Retrieve all **patients who have both an appointment and a prescription**.
+
+    query1_prescription = Doctor.objects.filter(
+        pres_dr_id__isnull= False
+    )
+    query2_appointment = Doctor.objects.filter(
+        app_dr_id__isnull = False
+    )
+    records = (query1_prescription | query2_appointment).distinct()
+    doctor_data=[
+        {   "Doctor name" : id.name,
+            "Doctor id": id.id}
+        for id in records
+        ]
+
 4. Find all **patients who have appointments but no prescriptions**.
+
+
+
 5. Retrieve **all patients with their doctors**, but **only include patients who have visited more than one doctor** and **exclude those who have insurance**.
+
+in many to many relatiobships we get manager back as one row is connected to multiple rows hence we used .all()
+
+same is the case reverse_name for foreign key because we get one to many relationship 
+
+    patients = Patient.objects.annotate(doctor_count=Count("doctor")).filter(
+        doctor_count__gte=2, insuarance_pt__isnull=True
+    )
+    data = [
+        {"Patient name": id.name, "Doctor name": [d.name for d in id.doctor.all()]}
+        for id in patients
+    ]
+    return JsonResponse({"Patients_and_Doctors": data})
+
+
+
 6. Get a **list of unique doctor specializations**, ordered **by the number of doctors in each specialization**.
+
+    doctors = Doctor.objects.values('specialization').annotate(count = Count("specialization")).order_by('count')
+    data = [
+        {"Doctor count": doctor['count'],
+         "Doctor Specialization": doctor['specialization'] ,
+
+         }
+        for doctor in doctors
+    ]
+
 7. Find **total revenue** generated from **appointments in the last 3 months**, but only from doctors specializing in **Cardiology or Surgery**.
 8. Retrieve all **patients** who have received **at least one prescription** containing the word **"Painkiller"**.
+
+    prescription_obj = Prescription.objects.filter(medicine_details__contains = "pain killer").distinct()
+    data = [
+    {"patient_name" : prescription.appointment.patient_name.name
+                       }
+    for prescription in prescription_obj
+    ]
+
 9. Find all **doctors** who have had **more than 5 patients but less than 15** in the last **year**.
+
+    doctors = Doctor.objects.annotate(patient_count = Count("doctor_patients")).filter(
+    patient_count__gte=5,
+    patient_count__lte = 10
+    )
+    doctor_data =[
+        {
+            "Doctor Name" : doctor.name
+        } for doctor in doctors
+    ]
+
+
 10. **Bulk create** test **appointments** and then **bulk update** their **status** to `"Completed"` if the **appointment date has passed**.
+
+
 11. Find all **patients who have insurance and at least one surgery** using `select_related`, `filter`, and `Q`.
+
+   patients = Patient.objects.prefetch_related("insuarance_pt").filter(
+        Q(surgery_patient__isnull = False) & Q(insuarance_pt__isnull = False)
+    ).distinct()
+
+    patient_data = [
+        {
+            "Patient name" : patient.name
+        } for patient in patients
+    ]
+
 12. Retrieve all **doctors and count their appointments** using `annotate`, `Count`, and `prefetch_related`.
+    doctors = Doctor.objects.prefetch_related("app_dr_id").annotate(
+        appointment_count = Count('app_dr_id')).order_by("-appointment_count")
+
+    doctor_data = [
+        {
+            "Doctor Name" : doctor.name,
+            "No. of appointments" : doctor.appointment_count
+        } for doctor in doctors
+    ]
+
+
 13. List all **appointments scheduled in the next 30 days** using `filter` and `order_by`.
+
+
 14. Retrieve the **youngest and oldest patient** using `aggregate`, `Min`, and `Max`.
+
+    patients = Patient.objects.order_by('-dob')
+    youngest = patients.first()
+    oldest = patients.last()
+
+    data = [
+        {
+            "Youngest Name": youngest.name,
+            "Youngest Age" : youngest.age
+        },
+        {
+        
+            "Oldest Name": oldest.name,
+            "Oldest Age" : oldest.age  
+        }
+    ]
+
 15. Find **departments with the most doctors** using `annotate`, `Count`, and `order_by`.
-16. Retrieve all **appointments where the doctor's specialization is "Dermatology"** using `select_related` and `filter`.
+    
+    departments = Department.objects.annotate(count=Count("dr_to_dept")).order_by('-count')
+    dept_data = [
+        {"Department name": dept.name,
+         "Dr Count" : dept.count
+         }
+        for dept in departments
+    ]
+
+16. Retrieve all **appointments where the doctor's specialization is "Cardiology"** using `select_related` and `filter`.
+
+   appointments = Appointment.objects.select_related('doctor').filter(
+        doctor__specialization = 'Cardiologist'
+    )
+    appointment_data = [
+        {"Patient name": app.patient_name.name,
+         "Doctor Name" : app.doctor.name
+         }
+        for app in appointments
+    ]
+
+
 17. Find **patients who had an appointment but no surgery** using `difference`.
+
+
+
 18. Retrieve **all head doctors of departments** using `select_related`.
-19. Count the **total number of surgeries** by **each department** using `annotate` and `Count`.
-20. Find **patients who had an appointment, a prescription, and a surgery** using `intersection`.
+
+    dr = Department.objects.select_related('head_doctor').filter(
+        head_doctor__isnull = False
+    )
+    doctor_data = [
+        {"Head Doctor name": dept.head_doctor.name,
+         "Department" : dept.name
+         }
+        for dept in dr 
+    ]
+
+
+19. Count the **total number of surgeries** by **each departm'ent** using `annotate` and `Count`.
+20. Find **patients who had an appointment and a surgery** using `intersection`.
 21. Retrieve **prescriptions written in the last 7 days** using `filter` and `Q`.
 22. Get all **insurance providers that cover more than 5 patients** using `values` and `annotate`.
 23. Find all **doctors who have prescribed at least 10 medicines** using `annotate` and `Count`.

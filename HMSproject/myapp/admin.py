@@ -21,13 +21,13 @@ class AppointmentAdmin(admin.ModelAdmin):
     # search_fields = ("appointment_date",)
 
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('name','gender',)
+    list_display = ('name','gender','age')
     list_filter = ["doctor__name"]
 
 
 class SurgeryAdmin(admin.ModelAdmin):
     list_display =( 'surgery_type','patient__name', 'doctor__name')
-    list_filter =['patient__name']
+    list_filter =['patient__name', 'doctor__department__name']
 
 
 class PrescriptionAdmin(admin.ModelAdmin):

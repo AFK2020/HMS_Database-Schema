@@ -1,7 +1,7 @@
 from django.db import models
 from myapp.constants import GenderType, AppointmentStatus, DoctorType, AppointmentType
 from myapp.customfield import CustomPhoneNumberField
-
+from django.utils import timezone
 
 class Department(models.Model):
     name = models.CharField(max_length=255)
@@ -82,7 +82,7 @@ class Prescription(models.Model):
     appointment = models.OneToOneField(
         "myapp.Appointment",
         on_delete=models.CASCADE,
-        verbose_name="Appointment Date",
+        verbose_name="Appointment Name",
         related_name="pres_app_id",
         unique=True,
     )
@@ -96,7 +96,7 @@ class Prescription(models.Model):
     instructions = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.appointment.id} {self.doctor.id}"
+        return f"{self.appointment.id} {self.doctor.name}"
 
 
 class Appointment(models.Model):
@@ -122,7 +122,7 @@ class Appointment(models.Model):
     notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.patient_name} : {self.type} : {self.status}"
+        return f"{self.patient_name.name}: {self.type}"
 
 
 class Patient(models.Model):
@@ -136,5 +136,16 @@ class Patient(models.Model):
         Appointment, on_delete=models.CASCADE, null=True, blank=True, related_name="appoint_patient"
     )
     doctor = models.ManyToManyField(Doctor, blank=True, related_name="doctor_patients")
+
+    @property
+    def age(self):
+        today = timezone.now().date()
+        age = int(
+            today.year
+            - (self.dob.year)
+            - ((today.month, today.day) < (self.dob.month, self.dob.day))
+        )
+        return age
+
     def __str__(self):
-        return self.name
+        return f"{self.name} : {self.age}"
