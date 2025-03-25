@@ -334,19 +334,67 @@ same is the case reverse_name for foreign key because we get one to many relatio
 
 
 19. Count the **total number of surgeries** by **each departm'ent** using `annotate` and `Count`.
+
+
 20. Find **patients who had an appointment and a surgery** using `intersection`.
+
+
 21. Retrieve **prescriptions written in the last 7 days** using `filter` and `Q`.
+
+
+
 22. Get all **insurance providers that cover more than 5 patients** using `values` and `annotate`.
+
+
 23. Find all **doctors who have prescribed at least 10 medicines** using `annotate` and `Count`.
 24. Retrieve **all patients whose last name starts with 'S'** using `filter`.
+
+    patients = Patient.objects.filter(name__startswith='S')
+    patient_data = [
+        {
+            "Patient Name" : p.name 
+        } for p in patients
+    ]
+
 25. Count the **number of male and female patients** using `annotate`.
+
+
 26. Find **the doctor who has performed the most surgeries** using `annotate` and `order_by`.
+
 27. Get **appointments where the patient has visited the same doctor more than once** using `annotate` and `filter`.
-28. List all **departments along with the number of surgeries performed** using `annotate`.
+
+
 29. Retrieve **appointments where the patient and doctor are the same gender** using `F`.
+Gender of Doctor is not specified
+
 30. Count the **number of doctors with more than 3 specializations** using `Count`.
+According to our requirements only one specialization is possible.
+
+
 31. Find all **patients who do not have a phone number** using `exclude`.
+phone number is a required field
 32. Retrieve the **top 5 doctors with the highest number of patients** using `annotate`.
-33. Get **departments that have at least 10 doctors** using `annotate` and `filter`.
+
+
+    doctors = Doctor.objects.annotate(patient_count=Count("doctor_patients")).order_by("-patient_count")[:5]
+    
+    doctor_data = [{"Doctor Name": doctor.name,
+                    "Speciality" : doctor.specialization,
+                    "Count": doctor.patient_count
+                    } for doctor in doctors]
+
+33. Get **departments that have at least 3 doctors** using `annotate` and `filter`.
+
+def dept_doctors(request):
+    depts = Department.objects.annotate(count = Count('dr_to_dept')).filter(
+        count__gte = 3
+    )
+
+    dept_data = [
+        {
+            "Department Name" : d.name
+        } for d in depts
+    ]
+
+
 34. Find **patients who had a surgery but no prescriptions** using `difference`.
-35. Retrieve **the most prescribed medicine** using `values`, `annotate`, and `Count`.

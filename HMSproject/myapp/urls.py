@@ -4,7 +4,10 @@ from myapp.views import retrieve_list,dept_three_drs, patients_with_prescription
 from myapp.views import retrieve_app_MassMutual,patients_doctors,update_priority, retrieve_dr_id,patients_union,fetch_doctors
 from myapp.views import doctors_app_pres, doctor_specializations,prescription_pain_killer,doctors_names,patiente_with_insurance
 from myapp.views import appointments_thirty_days,oldest_youngest_patients,dept_doctors,cardiology_appointments,difference
-from myapp.views import head_doctor,intersection,total_surgeries
+from myapp.views import head_doctor,intersection,total_surgeries,prescription_seven_days,insurance_providers
+from myapp.views import name_S,genders,most_surgeries,doctor_patient_top_five,dept_doctors,patients_visit_doctor
+
+
 
 urlpatterns = [
     path('patients/without-insurance/', patients_without_insurance, name='patients_without_insurance'),
@@ -34,6 +37,20 @@ urlpatterns = [
     path("department/head-doctor", head_doctor , name="head_doctor"),
     path("patients/intersection", intersection , name="intersection"),
     path("surgery/total-surgeries", total_surgeries , name="total_surgeries"),
+    path("prescription/prescription-seven-days", prescription_seven_days , name="prescription_seven_days"),
+    path("insuarance/insurance-providers", insurance_providers , name="insurance_providers"),
+    path("patients/name-S", name_S , name="name_S"),
+    path("patients/genders", genders , name="genders"),
+    path("doctors/most-surgeries", most_surgeries , name="most_surgeries"),
+    path("doctors/top-patients", doctor_patient_top_five , name="gdoctor_patient_top_five"),
+    path("department/dept-doctors", dept_doctors , name="dept_doctors"),
+    path("patients/patients-visit-doctor", patients_visit_doctor , name="patients_visit_doctor"),
+
+
+
+
+
+
 
     
 ]

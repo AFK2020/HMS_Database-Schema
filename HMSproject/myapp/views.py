@@ -383,13 +383,98 @@ def total_surgeries(request):
         "Total surgeries" : t['count']
         } for t in total
     ]
-    return JsonResponse ({"Surggeries by each dept": surgery_data})
+    return JsonResponse ({"Surgeries by each dept": surgery_data})
 
 def prescription_seven_days(request):
     today = timezone.now().date()
     one_week = today - timedelta(days=7)
     prescription_obj = Prescription.objects.filter(
-        pres_app_id__appointment_date__lte = today,
-        pres_app_id__appointment_date__gte = one_week
-
+        appointment__appointment_date__lte = today,
+        appointment__appointment_date__gte = one_week
     )
+    data = [
+        {   "Patient Name" : p.appointment.patient_name.name,
+            "Doctor Name" : p.doctor.name,
+            "Appointment Date": p.appointment.appointment_date
+        } for p in prescription_obj
+    ]
+    return JsonResponse ({"Prescription in last 7 days": data})
+
+
+def insurance_providers(request):
+    insuarnace = Insuarance.objects.values('provider').annotate(count = Count('patient__name')).filter(
+        count__gte = 2
+    )
+    data = [
+        {
+            "Provider Name": obj['provider'],
+            'Insuarace to patients' : obj["count"]
+        } for obj in insuarnace
+    ]
+    return JsonResponse({'Insuarance Data' : data})
+
+
+def name_S(request):
+    patients = Patient.objects.filter(name__startswith='S')
+    patient_data = [
+        {
+            "Patient Name" : p.name 
+        } for p in patients
+    ]
+    return JsonResponse({"Patients": patient_data})
+
+def genders(request):
+    gender_count = Patient.objects.values('gender').annotate(count = Count('gender'))
+    gender_data = [
+        {
+            "Gender" : gender['gender'],
+            "Count" : gender['count']
+        }for gender in gender_count
+    ]
+    return JsonResponse({"Data" : gender_data})
+
+def most_surgeries(request):
+    obj = Doctor.objects.annotate(count= Count('surgery_doctor')).order_by('-count').first()
+
+    Doctor_data = [
+        {
+            'Doctor' : obj.name,
+            "Count" : obj.count
+        }
+    ]
+    return JsonResponse({"Doctor with most Surgeries" : Doctor_data})
+
+
+
+def patients_visit_doctor(request):
+    patients = Patient.objects.annotate(count = Count('doctor')).filter(
+        count__gte = 2
+    )
+    print(patients)
+
+
+
+def doctor_patient_top_five(request):
+
+    doctors = Doctor.objects.annotate(patient_count=Count("doctor_patients")).order_by("-patient_count")[:5]
+    
+    doctor_data = [{"Doctor Name": doctor.name,
+                    "Speciality" : doctor.specialization,
+                    "Count": doctor.patient_count
+                    } for doctor in doctors]
+
+    return JsonResponse({"Doctors with top five number of patients" : doctor_data})
+
+
+def dept_doctors(request):
+    depts = Department.objects.annotate(count = Count('dr_to_dept')).filter(
+        count__gte = 3
+    )
+
+    dept_data = [
+        {
+            "Department Name" : d.name
+        } for d in depts
+    ]
+
+    return JsonResponse({"Department Doctors": dept_data})
